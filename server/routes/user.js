@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const auth = require("../middleware/authUser");
+const authUser = require("../middleware/authUser");
 const bcrypt = require("bcryptjs");
 
 // Route for user registration
@@ -51,7 +51,7 @@ router.post("/users/login", async (req, res) => {
   }
 });
 
-router.post("/users/logout", auth, async (req, res) => {
+router.post("/users/logout", authUser, async (req, res) => {
   try {
     req.user.tokens = req.user.tokens.filter(
       (token) => token.token !== req.token
@@ -65,7 +65,7 @@ router.post("/users/logout", auth, async (req, res) => {
   }
 });
 
-router.get("/users/:id", async (req, res) => {
+router.get("/users/:id", authUser, async (req, res) => {
   const _id = req.params.id;
 
   try {
@@ -84,7 +84,7 @@ router.get("/users/:id", async (req, res) => {
 });
 
 //Update user
-router.put("/users/:id", async (req, res) => {
+router.put("/users/:id", authUser, async (req, res) => {
   const _id = req.params.id;
   const { currentId, isAdmin, password } = req.body;
 
@@ -107,7 +107,7 @@ router.put("/users/:id", async (req, res) => {
 });
 
 //Delete user
-router.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id", authUser, async (req, res) => {
   const _id = req.params.id;
   const { currentId, isAdmin } = req.body;
 
@@ -125,7 +125,7 @@ router.delete("/users/:id", async (req, res) => {
 });
 
 //follow a user
-router.put("/users/:id/follow", async (req, res) => {
+router.put("/users/:id/follow", authUser, async (req, res) => {
   const currentId = req.body.currentId;
   const id = req.params.id;
 
@@ -150,7 +150,7 @@ router.put("/users/:id/follow", async (req, res) => {
 });
 
 //Unfollow a user
-router.put("/users/:id/unfollow", async (req, res) => {
+router.put("/users/:id/unfollow", authUser, async (req, res) => {
   const currentId = req.body.currentId;
   const id = req.params.id;
 

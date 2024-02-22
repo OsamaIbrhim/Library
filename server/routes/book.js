@@ -1,9 +1,6 @@
 const express = require("express");
-const mongoose = require("mongoose");
-const validator = require("validator");
 const router = express.Router();
 const Book = require("../models/Book");
-const User = require("../models/User");
 // const auth = require("../middleware/auth");
 // const upload = require("../middleware/upload");
 
@@ -58,10 +55,59 @@ router.delete("/:id/dbooks/:bid", async (req, res) => {
   try {
     const book = await Book.findOneAndDelete({ _id: bookId, author: authorId });
 
-    if (!book) {
-      return res.status(404).send("Book not found");
-    }
     res.status(200).send("Book deleted successfully");
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+router.put("/:id/likbooks/:bid", async (req, res) => {
+  const bookId = req.params.bid;
+  const userId = req.params.id;
+
+  try {
+    const book = await Book.findById(bookId);
+
+    if (!book.likes.includes(userId)) {
+      await book.updateOne({ $push: { likes: userId } });
+      res.status(200).send("Liked");
+    } else {
+      await book.updateOne({ $pull: { likes: userId } });
+      res.status(200).send("Unliked");
+    }
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+router.put("/:id/redbooks/:bid", async (req, res) => {
+  const bookId = req.params.bid;
+  const userId = req.params.id;
+
+  try {
+    const book = await Book.findById(bookId);
+
+    if (book.readers.includes(userId)) {
+      await book.updateOne({ $set: { readers: userId } });
+      res.status(200).send("Readed");
+    } else {
+      await book.updateOne({ $push: { readers: userId } });
+      res.status(200).send("Unreaded");
+    }
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+router.post("/:id/combooks/:bid", async (req, res) => {
+  const bookId = req.params.bid;
+  const userId = req.params.id;
+  const text = req.body.text;
+  const comment = new Comment({ userId, bookId, text });
+
+  try {
+    await comment.save();
+    res.status(200).send("Comment added successfully");
   } catch (e) {
     res.status(500).send();
   }

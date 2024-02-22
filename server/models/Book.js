@@ -22,10 +22,8 @@ const bookSchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
-    like: {
-      type: Number,
-      default: 0,
-    },
+    likes: [],
+    readers: [],
   },
   {
     timestamps: true,
