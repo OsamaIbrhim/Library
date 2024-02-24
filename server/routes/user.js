@@ -1,41 +1,79 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const authUser = require("../middleware/authUser");
+const auth = require("../middleware/auth");
 const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
 
-// Route for user registration
-router.post("/users/register", async (req, res) => {
+const generateVerificationCode = () => {
+  return Math.floor(100000 + Math.random() * 900000); // 5 or 6 digits code
+};
+
+const transporter = nodemailer.createTransport({
+  service: "Gmail",
+  auth: {
+    user: "osamaibrhiim@gmail.com",
+    pass: "Osama.01024276623",
+  },
+});
+
+//registration
+router.post("/auth/reg", async (req, res) => {
+  const email = req.body.email;
   const user = new User(req.body);
 
   try {
-    await user.save();
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).send("Email is already registered");
+    }
 
-    console.log("User saved successfully:", user);
+    const verificationCode = generateVerificationCode();
+
+    await transporter.sendMail({
+      from: "osamaibrhiim@gmail.com",
+      to: email,
+      subject: "Verification Code",
+      text: `Your verification code is: ${verificationCode}`,
+    });
 
     const token = await user.generateAuthToken();
 
     res.status(201).send({ user, token });
+    await user.save();
   } catch (error) {
-    console.error("Error saving user:", error);
-
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err) => err.message);
-      res.status(400).send(errors);
-    } else {
-      if (user.userType === "rejectedUser") {
-        res.status(400).send("You are rejected as a regular user");
-      } else if (user.userType === "rejectedAuthor") {
-        res.status(400).send("You are rejected as an author");
-      } else {
-        res.status(400).send("Looks like you are already registered");
-      }
-    }
+    res.status(500).send("Failed to register user");
   }
 });
 
-// Route for user login
-router.post("/users/login", async (req, res) => {
+//verify
+router.post("/auth/verify/:email", async (req, res) => {
+  const { verificationCode } = req.body;
+  const email = req.params.email;
+
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
+
+    // Check if the user exists and the verification code matches
+    if (!user || user.verificationCode !== verificationCode) {
+      return res.status(400).send("Invalid verification code");
+    }
+
+    // Update the user's status to verified
+    // For simplicity, let's assume there's a verified field in the User model
+    user.verified = true;
+    await user.save();
+
+    res.status(200).send("Email verified successfully");
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).send("Verification failed");
+  }
+});
+
+//login
+router.post("/auth/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -51,7 +89,8 @@ router.post("/users/login", async (req, res) => {
   }
 });
 
-router.post("/users/logout", authUser, async (req, res) => {
+// logout
+router.post("/auth/logout", auth, async (req, res) => {
   try {
     req.user.tokens = req.user.tokens.filter(
       (token) => token.token !== req.token
@@ -65,7 +104,8 @@ router.post("/users/logout", authUser, async (req, res) => {
   }
 });
 
-router.get("/users/:id", authUser, async (req, res) => {
+//get profile
+router.get("/:id", async (req, res) => {
   const _id = req.params.id;
 
   try {
@@ -83,8 +123,29 @@ router.get("/users/:id", authUser, async (req, res) => {
   }
 });
 
-//Update user
-router.put("/users/:id", authUser, async (req, res) => {
+//Get all followers
+router.get("/:id/followers", async (req, res) => {
+  const _id = req.params.id;
+
+  try {
+    const user = await User.findById(_id);
+    const followers = await Promise.all(
+      user.followers.map((followerId) => user.findById(followerId))
+    );
+
+    let followerList = followers.map((follower) => {
+      const { _id, name, avatar } = follower;
+      return { _id, name, avatar };
+    });
+
+    res.status(200).json(followerList);
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+//Update
+router.put("/update/:id", async (req, res) => {
   const _id = req.params.id;
   const { currentId, isAdmin, password } = req.body;
 
@@ -106,8 +167,8 @@ router.put("/users/:id", authUser, async (req, res) => {
   }
 });
 
-//Delete user
-router.delete("/users/:id", authUser, async (req, res) => {
+//Delete
+router.delete("/delete/:id", async (req, res) => {
   const _id = req.params.id;
   const { currentId, isAdmin } = req.body;
 
@@ -124,8 +185,8 @@ router.delete("/users/:id", authUser, async (req, res) => {
   }
 });
 
-//follow a user
-router.put("/users/:id/follow", authUser, async (req, res) => {
+//follow
+router.put("/:id/follow", async (req, res) => {
   const currentId = req.body.currentId;
   const id = req.params.id;
 
@@ -149,8 +210,8 @@ router.put("/users/:id/follow", authUser, async (req, res) => {
   }
 });
 
-//Unfollow a user
-router.put("/users/:id/unfollow", authUser, async (req, res) => {
+//Unfollow
+router.put("/:id/unfollow", async (req, res) => {
   const currentId = req.body.currentId;
   const id = req.params.id;
 

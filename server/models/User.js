@@ -8,14 +8,15 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      trim: false,
       required: true,
+      min: 3,
+      max: 20,
     },
     email: {
       type: String,
       unique: true,
       required: true,
-      trim: true,
+      max: 50,
       lowercase: true,
       validate: {
         validator(value) {
@@ -57,6 +58,10 @@ const userSchema = new mongoose.Schema(
       },
       minLength: 7,
     },
+    isVerifyed: {
+      type: Boolean,
+      default: false,
+    },
     tokens: [
       {
         token: {
@@ -66,10 +71,18 @@ const userSchema = new mongoose.Schema(
       },
     ],
     avatar: {
-      type: Buffer,
+      type: String,
+      default:
+        "https://t3.ftcdn.net/jpg/05/87/76/66/360_F_587766653_PkBNyGx7mQh9l1XXPtCAq1lBgOsLl6xH.jpg",
     },
-    followers: [],
-    following: [],
+    followers: {
+      type: Array,
+      default: [],
+    },
+    following: {
+      type: Array,
+      default: [],
+    },
   },
   {
     timestamps: true,

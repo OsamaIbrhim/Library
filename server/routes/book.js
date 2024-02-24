@@ -1,12 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const Book = require("../models/Book");
-// const auth = require("../middleware/auth");
-// const upload = require("../middleware/upload");
 
-router.post("/:id/nbooks", async (req, res) => {
-  const book = new Book({ author: req.params.id, ...req.body });
+//get all books
+router.get("/", async (req, res) => {
   try {
+    const books = await Book.find({});
+    res.status(200).send(books);
+  } catch (e) {
+    res.status(500).send();
+  }
+});
+
+//create book
+router.post("/:id/new_books", async (req, res) => {
+  try {
+    const book = new Book({ author: req.params.id, ...req.body });
     await book.save();
     res.status(201).send(book);
   } catch (e) {
@@ -14,7 +23,8 @@ router.post("/:id/nbooks", async (req, res) => {
   }
 });
 
-router.get("/:id/mbooks", async (req, res) => {
+// get my books
+router.get("/:id/my_books", async (req, res) => {
   const authorId = req.params.id;
 
   try {
@@ -25,7 +35,8 @@ router.get("/:id/mbooks", async (req, res) => {
   }
 });
 
-router.put("/:id/ubooks/:bid", async (req, res) => {
+//update book
+router.put("/:id/update_books/:bid", async (req, res) => {
   const authorId = req.params.id;
   const bookId = req.params.bid;
   const book = {};
@@ -48,7 +59,8 @@ router.put("/:id/ubooks/:bid", async (req, res) => {
   }
 });
 
-router.delete("/:id/dbooks/:bid", async (req, res) => {
+// delete book
+router.delete("/:id/delete_books/:bid", async (req, res) => {
   const authorId = req.params.id;
   const bookId = req.params.bid;
 
@@ -61,7 +73,8 @@ router.delete("/:id/dbooks/:bid", async (req, res) => {
   }
 });
 
-router.put("/:id/likbooks/:bid", async (req, res) => {
+// like book
+router.put("/:id/like_books/:bid", async (req, res) => {
   const bookId = req.params.bid;
   const userId = req.params.id;
 
@@ -69,18 +82,23 @@ router.put("/:id/likbooks/:bid", async (req, res) => {
     const book = await Book.findById(bookId);
 
     if (!book.likes.includes(userId)) {
-      await book.updateOne({ $push: { likes: userId } });
+      book.likes.set(userId, true);
       res.status(200).send("Liked");
     } else {
-      await book.updateOne({ $pull: { likes: userId } });
+      book.likes.delete(userId);
       res.status(200).send("Unliked");
     }
+
+    await book.updateOne({ likes: book.likes }, { new: true });
+
+    res.status(200).send("Book liked successfully");
   } catch (e) {
     res.status(500).send();
   }
 });
 
-router.put("/:id/redbooks/:bid", async (req, res) => {
+// read book
+router.put("/:id/read_books/:bid", async (req, res) => {
   const bookId = req.params.bid;
   const userId = req.params.id;
 
@@ -99,7 +117,8 @@ router.put("/:id/redbooks/:bid", async (req, res) => {
   }
 });
 
-router.post("/:id/combooks/:bid", async (req, res) => {
+// comment book
+router.post("/:id/comment_books/:bid", async (req, res) => {
   const bookId = req.params.bid;
   const userId = req.params.id;
   const text = req.body.text;

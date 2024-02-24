@@ -14,15 +14,19 @@ const bookSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    pdfLink: {
+    bookLink: {
       type: String,
+      required: true,
     },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "User",
     },
-    likes: [],
+    likes: {
+      type: Map,
+      of: Boolean,
+    },
     readers: [],
   },
   {
